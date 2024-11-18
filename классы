@@ -1,0 +1,311 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream>
+#include <cstring>
+#include <locale>
+#include <cstdlib>
+#include <ctime>
+
+using namespace std;
+
+#define MAX_HINT_LENGTH 200
+#define MAX_OPTION_LENGTH 100
+#define MAX_PHRASE_LENGTH 100
+#define MAX_PUZZLES 3
+#define MAX_ATTEMPTS 3
+#define MAX_PHRASES 3
+#define MAX_HINTS 3
+
+class Hint {                      // подсказка
+private:
+    char text[MAX_HINT_LENGTH];
+public:
+    Hint() {
+        strcpy(text, "");
+    }
+
+    Hint(const char* hintText) {
+        strcpy(text, hintText);
+    }
+
+    const char* getText() const {
+        return text;
+    }
+
+    void setText(const char* hintText) {
+        strcpy(text, hintText);
+    }
+};
+
+class Option {                                // варианты ответа
+private:
+    char text[MAX_OPTION_LENGTH];
+public:
+    Option() {
+        strcpy(text, "");
+    }
+
+    Option(const char* optionText) {
+        strcpy(text, optionText);
+    }
+
+    const char* getText() const {
+        return text;
+    }
+
+    void setText(const char* optionText) {
+        strcpy(text, optionText);
+    }
+};
+
+class Puzzle {                                // загадка
+private:
+    char question[MAX_HINT_LENGTH];
+    Option options[3];
+    int correctAnswerIndex;
+    Hint hints[MAX_HINTS];
+    int attempts;
+public:
+    Puzzle() : correctAnswerIndex(0), attempts(0) {
+        strcpy(question, "");
+    }
+
+    Puzzle(const char* question, int correctAnswerIndex, const char* hintText1, const char* hintText2, const char* hintText3, const char* option1, const char* option2, const char* option3) {
+        strcpy(this->question, question);
+        this->correctAnswerIndex = correctAnswerIndex;
+        hints[0].setText(hintText1);
+        hints[1].setText(hintText2);
+        hints[2].setText(hintText3);
+        options[0].setText(option1);
+        options[1].setText(option2);
+        options[2].setText(option3);
+        attempts = 0;
+    }
+
+    const char* getQuestion() const {
+        return question;
+    }
+
+    const char* getOption(int index) const {
+        return options[index].getText();
+    }
+
+    const char* getHint(int index) const {
+        return hints[index].getText();
+    }
+
+    int getCorrectAnswerIndex() const {
+        return correctAnswerIndex;
+    }
+
+    int getAttempts() const {
+        return attempts;
+    }
+
+    void incrementAttempts() {
+        attempts++;
+    }
+
+    void resetAttempts() {
+        attempts = 0;
+    }
+};
+
+class Player {                              // игрок
+private:
+    char name[MAX_OPTION_LENGTH];
+    int score;
+public:
+    Player() : score(0) {
+        strcpy(name, "");
+    }
+
+    Player(const char* playerName) : score(0) {
+        strcpy(name, playerName);
+    }
+
+    const char* getName() const {
+        return name;
+    }
+
+    int getScore() const {
+        return score;
+    }
+
+    void incrementScore() {
+        score++;
+    }
+
+    void resetScore() {
+        score = 0;
+    }
+
+    void setName(const char* playerName) 
+    { strcpy(name, playerName); }
+};
+
+class Phrase {                                   // фраза, выводящаяся при правильном ответе
+private:
+    char text[MAX_PHRASE_LENGTH];
+public:
+    Phrase() {
+        strcpy(text, "");
+    }
+
+    Phrase(const char* phraseText) {
+        strcpy(text, phraseText);
+    }
+
+    const char* getText() const {
+        return text;
+    }
+
+    void setText(const char* phraseText) {
+        strcpy(text, phraseText);
+    }
+};
+
+class Game {                                 // игра и её состояние
+private:
+    Puzzle puzzles[MAX_PUZZLES];
+    Player player;
+    int currentPuzzle;
+    Phrase phrases[MAX_PHRASES];
+public:
+    Game() : currentPuzzle(0) {}
+
+    void initializePuzzles() {
+        puzzles[0] = Puzzle("Что может идти вверх и вниз, но при этом не двигается?", 0, "У этого предмета есть ступеньки.", "Ты можешь встретить его в здании.", "Это помогает людям перемещаться между этажами.", "Лестница", "Эскалатор", "Лифт");
+        puzzles[1] = Puzzle("То ли зебра, то ли лесенка, прикоснись - и будет песенка.", 1, "Это музыкальный инструмент.", "У него есть черные и белые клавиши.", "У него нет струн.", "Эскалатор", "Пианино", "Гитара");
+        puzzles[2] = Puzzle("Я говорю без рта и слышу без ушей. Что я такое?", 1, "Это природное явление, которое ты можешь услышать.", "Оно возникает, когда звук отражается от поверхности.", "Ты можешь слышать его в горах или пещерах.", "Голос", "Эхо", "Ветер");
+    }
+
+    void initializePhrases() {
+        phrases[0] = Phrase("У дома Круэллы красная крыша.\n");
+        phrases[1] = Phrase("У дома Круэллы красная дверь.\n");
+        phrases[2] = Phrase("Дом Круэллы построен из кирпича.\n");
+    }
+
+    void setPlayerName(const char* playerName) {
+        player = Player(playerName);
+    }
+
+    const char* getPlayerName() const {
+        return player.getName();
+    }
+
+    int getPlayerScore() const {
+        return player.getScore();
+    }
+
+    const char* getRandomPhrase() const {
+        int randomIndex = rand() % MAX_PHRASES;
+        return phrases[randomIndex].getText();
+    }
+
+    bool checkAnswer(int puzzleIndex, int answerIndex) {
+        if (answerIndex == puzzles[puzzleIndex].getCorrectAnswerIndex()) {
+            player.incrementScore();
+            return true;
+        }
+        else {
+            puzzles[puzzleIndex].incrementAttempts();
+            return false;
+        }
+    }
+
+    void printPuzzle(int puzzleIndex) const {
+        cout << "Загадка: " << puzzles[puzzleIndex].getQuestion() << endl;
+        for (int i = 0; i < 3; i++) {
+            cout << i + 1 << ") " << puzzles[puzzleIndex].getOption(i) << endl;
+        }
+    }
+
+    void printHint(int puzzleIndex) const {
+        int attempts = puzzles[puzzleIndex].getAttempts();
+        if (attempts < MAX_HINTS) {
+            cout << "Подсказка: " << puzzles[puzzleIndex].getHint(attempts) << endl;
+        }
+    }
+
+    void startGame() {
+        for (currentPuzzle = 0; currentPuzzle < MAX_PUZZLES; currentPuzzle++) {
+            printPuzzle(currentPuzzle);
+            getAnswerAndCheck(currentPuzzle);
+        }
+        cout << "Игра завершена! " << getPlayerName() << " решил(а) " << getPlayerScore() << " загадок." << endl;
+        if (getPlayerScore() == 0) {
+            cout << "Вы не решили ни одной загадки. Попробуйте снова!\n" << endl;
+            player.resetScore();
+            startGame();
+        }
+    }
+
+    void getAnswerAndCheck(int puzzleIndex) {
+        int answerIndex;
+        cout << "Введите номер ответа (1-3): ";
+        cin >> answerIndex;
+
+        if (checkAnswer(puzzleIndex, answerIndex - 1)) {
+            cout << "Правильно! Молодец!\n" << endl;
+            cout << getRandomPhrase() << endl;
+        }
+        else {
+            if (puzzles[puzzleIndex].getAttempts() < MAX_ATTEMPTS) {
+                printHint(puzzleIndex);
+                getAnswerAndCheck(puzzleIndex);
+            }
+            else {
+                cout << "Три попытки истекли. Переход к следующей загадке.\n" << endl;
+            }
+        }
+    }
+};
+
+// главная функция
+int main() {
+    setlocale(LC_ALL, "RUS");
+    srand(time(NULL)); // инициализация генератора случайных чисел
+
+    Game game;
+
+    // работа с "статической" переменной
+    Player staticPlayer;
+    cout << "Введите ваше имя (используя английские символы): ";
+    char name[MAX_OPTION_LENGTH];
+    cin >> name;
+    staticPlayer = Player(name);
+
+    // работа с динамической переменной
+    Player* dynamicPlayer = new Player(staticPlayer);
+    game.setPlayerName(dynamicPlayer->getName());
+    game.initializePuzzles();
+    game.initializePhrases();
+    game.startGame();
+
+    delete dynamicPlayer; // Освобождение памяти, выделенной для динамической переменной
+
+    // работа с динамическим массивом объектов класса
+    int numPlayers;
+    cout << "Введите количество игроков: ";
+    cin >> numPlayers;
+    Player* players = new Player[numPlayers];
+    for (int i = 0; i < numPlayers; i++) {
+        cout << "Введите имя игрока " << i + 1 << ": ";
+        cin >> name;
+        players[i] = Player(name);
+    }
+    delete[] players; // освобождение памяти, выделенной для динамического массива объектов
+
+    // работа с массивом динамических объектов класса
+    Player** dynamicPlayers = new Player * [numPlayers];
+    for (int i = 0; i < numPlayers; i++) {
+        dynamicPlayers[i] = new Player();
+        cout << "Введите имя игрока " << i + 1 << ": ";
+        cin >> name;
+        dynamicPlayers[i]->setName(name); // Задаем имя игрока через метод setName
+    }
+
+    delete[] dynamicPlayers; // освобождение памяти, выделенной для массива указателей на динамические объекты
+
+    return 0;
+}
