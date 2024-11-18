@@ -1,0 +1,183 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <locale.h>
+#include <time.h>
+
+// Определение структур
+
+#define MAX_HINT_LENGTH 200
+#define MAX_OPTION_LENGTH 100
+#define MAX_PHRASE_LENGTH 100
+#define MAX_PUZZLES 3
+#define MAX_ATTEMPTS 3
+#define MAX_PHRASES 3
+#define MAX_HINTS 3
+
+struct Hint {                           // подсказка
+    char text[MAX_HINT_LENGTH];
+};
+
+struct Option {                         // варианты ответа
+    char text[MAX_OPTION_LENGTH];
+};
+
+struct Puzzle {                         // загадка
+    char question[MAX_HINT_LENGTH];
+    struct Option options[3];
+    int correctAnswerIndex; // Индекс правильного ответа (0, 1, 2)
+    struct Hint hints[MAX_HINTS];
+    int attempts;
+};
+
+struct Player {                         // игрок
+    char name[MAX_OPTION_LENGTH];
+    int score;
+};
+
+struct Phrase {                         // фраза, выводящаяся при правильном ответе
+    char text[MAX_PHRASE_LENGTH];
+};
+
+struct Game {                           // игра и её состояние
+    struct Puzzle puzzles[MAX_PUZZLES];
+    struct Player player;
+    int currentPuzzle;
+    struct Phrase phrases[MAX_PHRASES];
+};
+
+// функции для работы с структурами
+
+void initializePuzzle(struct Puzzle* puzzle, const char* question, int correctAnswerIndex, const char* hintText1, const char* hintText2, const char* hintText3, const char* option1, const char* option2, const char* option3) {
+    strcpy(puzzle->question, question);
+    puzzle->correctAnswerIndex = correctAnswerIndex;
+    strcpy(puzzle->hints[0].text, hintText1);
+    strcpy(puzzle->hints[1].text, hintText2);
+    strcpy(puzzle->hints[2].text, hintText3);
+    strcpy(puzzle->options[0].text, option1);
+    strcpy(puzzle->options[1].text, option2);
+    strcpy(puzzle->options[2].text, option3);
+    puzzle->attempts = 0;
+}
+
+void initializePlayer(struct Player* player, const char* name) {
+    strcpy(player->name, name);
+    player->score = 0;
+}
+
+void initializeGame(struct Game* game, struct Player* player) {
+    game->currentPuzzle = 0;
+    game->player = *player;
+}
+
+void initializePhrases(struct Game* game) {
+    strcpy(game->phrases[0].text, "У дома Круэллы красная крыша.\n");
+    strcpy(game->phrases[1].text, "У дома Круэллы красная дверь.\n");
+    strcpy(game->phrases[2].text, "Дом Круэллы построен из кирпича.\n");
+}
+
+// функция для получения случайной фразы
+char* getRandomPhrase(struct Game* game) {
+    int randomIndex = rand() % MAX_PHRASES;
+    return game->phrases[randomIndex].text;
+}
+
+// функция для проверки ответа
+int checkAnswer(struct Puzzle* puzzle, int answerIndex) {
+    if (answerIndex == puzzle->correctAnswerIndex) {
+        return 1;
+    }
+    else {
+        puzzle->attempts++;
+        return 0;
+    }
+}
+
+// функция для вывода загадки и вариантов ответов
+void printPuzzle(struct Puzzle* puzzle) {
+    printf("Загадка: %s\n", puzzle->question);
+    for (int i = 0; i < 3; i++) {
+        printf("%d) %s\n", i + 1, puzzle->options[i].text); // варианты ответа выводятся с цифрами 1, 2, 3
+    }
+}
+
+// функция для вывода подсказки
+void printHint(struct Puzzle* puzzle) {
+    if (puzzle->attempts < MAX_HINTS) {
+        printf("Подсказка: %s\n", puzzle->hints[puzzle->attempts].text);
+    }
+}
+
+// функция для ввода ответа и проверки
+void getAnswerAndCheck(struct Game* game, struct Puzzle* puzzle) {
+    int answerIndex;
+    printf("Введите номер ответа (1-3): ");
+    scanf("%d", &answerIndex);
+
+    if (checkAnswer(puzzle, answerIndex - 1)) { // answerIndex - 1 для приведения к индексу массива (0, 1, 2)
+        printf("Правильно! Молодец!\n\n");
+        printf("%s\n", getRandomPhrase(game));
+        game->player.score++;
+    }
+    else {
+        if (puzzle->attempts < MAX_ATTEMPTS) {
+            printHint(puzzle);
+            getAnswerAndCheck(game, puzzle);
+        }
+        else {
+            printf("Три попытки истекли. Переход к следующей загадке.\n\n");
+        }
+    }
+}
+
+void startGame(struct Game* game) {
+    for (int i = 0; i < MAX_PUZZLES; i++) {
+        printPuzzle(&game->puzzles[i]);
+        getAnswerAndCheck(game, &game->puzzles[i]);
+    }
+
+    printf("Игра завершена! %s решил(а) %d загадок.\n", game->player.name, game->player.score);
+    if (game->player.score == 0) {
+        printf("Вы не решили ни одной загадки. Попробуйте снова!\n\n");
+        initializeGame(game, &game->player);
+        startGame(game);
+    }
+}
+
+// главная функция
+int main() {
+    setlocale(LC_ALL, "RUS");
+    srand(time(NULL)); // инициализация генератора случайных чисел
+
+    struct Game game;
+
+    // работа с "статической" переменной
+    struct Player staticPlayer;
+    printf("Введите ваше имя (английскими символами): ");
+    scanf("%s", staticPlayer.name);
+    initializePlayer(&staticPlayer, staticPlayer.name);
+
+    // работа с динамической переменной
+    struct Player* dynamicPlayer = (struct Player*)malloc(sizeof(struct Player));
+    if (dynamicPlayer == NULL) {
+        printf("Ошибка выделения памяти\n");
+        return 1;
+    }
+    strcpy(dynamicPlayer->name, staticPlayer.name);
+    dynamicPlayer->score = staticPlayer.score;
+
+    // Инициализация игры с использованием динамической переменной
+    initializeGame(&game, dynamicPlayer);
+    initializePhrases(&game);
+
+    initializePuzzle(&game.puzzles[0], "Что может идти вверх и вниз, но при этом не двигается?", 0, "У этого предмета есть ступеньки.", "Ты можешь встретить его в здании.", "Это помогает людям перемещаться между этажами.", "Лестница", "Эскалатор", "Лифт");
+    initializePuzzle(&game.puzzles[1], "То ли зебра, то ли лесенка, прикоснись - и будет песенка.", 1, "Это музыкальный инструмент.", "У него есть черные и белые клавиши.", "У него нет струн.", "Эскалатор", "Пианино", "Гитара");
+    initializePuzzle(&game.puzzles[2], "Я говорю без рта и слышу без ушей. Что я такое?", 1, "Это природное явление, которое ты можешь услышать.", "Оно возникает, когда звук отражается от поверхности.", "Ты можешь слышать его в горах или пещерах.", "Голос", "Эхо", "Ветер");
+
+    startGame(&game);
+
+    free(dynamicPlayer); // Освобождение памяти, выделенной для динамической переменной
+
+    return 0;
+}
